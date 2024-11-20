@@ -56,22 +56,18 @@ def getMinimumTime(connection_nodes, connection_from, connection_to, connection_
         graph[u].append((v, w))
         graph[v].append((u, w))
 
-    # Step 1: Compute shortest paths from node 0
     shortest_from_0 = dijkstra(graph, 0, connection_nodes)
     
-    # Step 2: Check if all delivery points are reachable
     for delivery in deliveries:
         if shortest_from_0[delivery] == float('inf'):
             return -1  # Delivery point is not reachable
 
-    # Step 3: Precompute shortest paths between delivery nodes and back to 0
     delivery_nodes = [0] + deliveries
     k = len(delivery_nodes)
     shortest_paths = {}
     for node in delivery_nodes:
         shortest_paths[node] = dijkstra(graph, node, connection_nodes)
     
-    # Step 4: Solve TSP using Dynamic Programming (State Compression)
     dp = [[float('inf')] * k for _ in range(1 << k)]
     dp[1][0] = 0  # Starting from node 0 with only 0 visited
 
@@ -87,7 +83,6 @@ def getMinimumTime(connection_nodes, connection_from, connection_to, connection_
                     dp[mask][u] + shortest_paths[delivery_nodes[u]][delivery_nodes[v]]
                 )
     
-    # Step 5: Find the minimum cost to visit all nodes and return to 0
     full_mask = (1 << k) - 1
     result = float('inf')
     for u in range(1, k):
