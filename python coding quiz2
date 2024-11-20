@@ -1,0 +1,122 @@
+#!/bin/python3
+
+import math
+import os
+import random
+import re
+import sys
+
+
+
+#
+# Complete the 'getMinimumTime' function below.
+#
+# The function is expected to return a LONG_INTEGER.
+# The function accepts following parameters:
+#  1. WEIGHTED_INTEGER_GRAPH connection
+#  2. INTEGER_ARRAY deliveries
+#
+
+#
+# For the weighted graph, <name>:
+#
+# 1. The number of nodes is <name>_nodes.
+# 2. The number of edges is <name>_edges.
+# 3. An edge exists between <name>_from[i] and <name>_to[i]. The weight of the edge is <name>_weight[i].
+#
+#
+import heapq
+from collections import defaultdict
+
+def dijkstra(graph, start, n):
+    # Min-heap for Dijkstra's algorithm
+    heap = [(0, start)]  # (cost, node)
+    distances = {i: float('inf') for i in range(n)}
+    distances[start] = 0
+
+    while heap:
+        current_cost, current_node = heapq.heappop(heap)
+        
+        # Skip if we already found a shorter path
+        if current_cost > distances[current_node]:
+            continue
+        
+        for neighbor, weight in graph[current_node]:
+            new_cost = current_cost + weight
+            if new_cost < distances[neighbor]:
+                distances[neighbor] = new_cost
+                heapq.heappush(heap, (new_cost, neighbor))
+    
+    return distances
+    
+def getMinimumTime(connection_nodes, connection_from, connection_to, connection_weight, deliveries):
+    # Build the graph
+    graph = defaultdict(list)
+    for u, v, w in zip(connection_from, connection_to, connection_weight):
+        graph[u].append((v, w))
+        graph[v].append((u, w))
+
+    # Step 1: Compute shortest paths from node 0
+    shortest_from_0 = dijkstra(graph, 0, connection_nodes)
+    
+    # Step 2: Check if all delivery points are reachable
+    for delivery in deliveries:
+        if shortest_from_0[delivery] == float('inf'):
+            return -1  # Delivery point is not reachable
+
+    # Step 3: Precompute shortest paths between delivery nodes and back to 0
+    delivery_nodes = [0] + deliveries
+    k = len(delivery_nodes)
+    shortest_paths = {}
+    for node in delivery_nodes:
+        shortest_paths[node] = dijkstra(graph, node, connection_nodes)
+    
+    # Step 4: Solve TSP using Dynamic Programming (State Compression)
+    dp = [[float('inf')] * k for _ in range(1 << k)]
+    dp[1][0] = 0  # Starting from node 0 with only 0 visited
+
+    for mask in range(1 << k):
+        for u in range(k):
+            if not (mask & (1 << u)):  # If u is not visited in this mask
+                continue
+            for v in range(k):
+                if mask & (1 << v):  # If v is already visited
+                    continue
+                dp[mask | (1 << v)][v] = min(
+                    dp[mask | (1 << v)][v],
+                    dp[mask][u] + shortest_paths[delivery_nodes[u]][delivery_nodes[v]]
+                )
+    
+    # Step 5: Find the minimum cost to visit all nodes and return to 0
+    full_mask = (1 << k) - 1
+    result = float('inf')
+    for u in range(1, k):
+        result = min(result, dp[full_mask][u] + shortest_paths[delivery_nodes[u]][0])
+
+    return result if result != float('inf') else -1
+
+if __name__ == '__main__':
+    fptr = open(os.environ['OUTPUT_PATH'], 'w')
+
+    connection_nodes, connection_edges = map(int, input().rstrip().split())
+
+    connection_from = [0] * connection_edges
+    connection_to = [0] * connection_edges
+    connection_weight = [0] * connection_edges
+
+    for i in range(connection_edges):
+        connection_from[i], connection_to[i], connection_weight[i] = map(int, input().rstrip().split())
+
+    deliveries_count = int(input().strip())
+
+    deliveries = []
+
+    for _ in range(deliveries_count):
+        deliveries_item = int(input().strip())
+        deliveries.append(deliveries_item)
+
+    result = getMinimumTime(connection_nodes, connection_from, connection_to, connection_weight, deliveries)
+
+    fptr.write(str(result) + '\n')
+
+    fptr.close()
