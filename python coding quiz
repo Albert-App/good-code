@@ -1,0 +1,78 @@
+#!/bin/python3
+
+import math
+import os
+import random
+import re
+import sys
+
+
+
+#
+# Complete the 'getMaxArray' function below.
+#
+# The function is expected to return an INTEGER_ARRAY.
+# The function accepts INTEGER_ARRAY arr as parameter.
+#
+
+def getMaxArray(arr):
+    n = len(arr)
+    # Precompute the MEX for each suffix starting at position i
+    mex_suffix = [0] * (n + 1)
+    present = [False] * (n + 2)
+    mex = 0
+
+    for i in range(n - 1, -1, -1):
+        present[arr[i]] = True
+        while present[mex]:
+            mex += 1
+        mex_suffix[i] = mex
+
+    result = []
+    i = 0
+
+    while i < n:
+        mex_current = mex_suffix[i]
+        required_numbers = [0] * mex_current
+        count_required = mex_current
+        j = i
+
+        # Collect numbers until we have all required for current MEX
+        while j < n:
+            if arr[j] < mex_current and required_numbers[arr[j]] == 0:
+                required_numbers[arr[j]] = 1
+                count_required -= 1
+            j += 1
+            if count_required == 0:
+                break
+
+        # Compute MEX for the current segment
+        segment_numbers = set(arr[i:j])
+        mex_segment = 0
+        while mex_segment in segment_numbers:
+            mex_segment += 1
+        result.append(mex_segment)
+        i = j
+
+    return result
+
+
+
+
+if __name__ == '__main__':
+    fptr = open(os.environ['OUTPUT_PATH'], 'w')
+
+    arr_count = int(input().strip())
+
+    arr = []
+
+    for _ in range(arr_count):
+        arr_item = int(input().strip())
+        arr.append(arr_item)
+
+    result = getMaxArray(arr)
+
+    fptr.write('\n'.join(map(str, result)))
+    fptr.write('\n')
+
+    fptr.close()
